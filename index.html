@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Last Seed — Prototype (Fixed)</title>
-  <meta name="description" content="Last Seed — upgraded prototype: multiple levels, art, animations, enemies, UI and sound hooks, single-file for GitHub Pages."/>
+  <title>Last Seed — Upgraded Prototype (Art Pack)</title>
+  <meta name="description" content="Last Seed — upgraded prototype with programmatically generated pixel-art sprites to avoid image loading issues."/>
   <style>
     :root{--bg:#07121a;--card:#0f1720;--accent:#84d77e;--muted:#9fb3b7}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#041018,#07121a);color:#e8f0f2}
@@ -31,8 +31,8 @@
   <div class="wrap">
     <header>
       <div>
-        <h1>Last Seed — Upgraded Prototype (Fixed)</h1>
-        <div class="muted">Multiple levels, animated enemies, music hooks, and polished UI — single HTML file.</div>
+        <h1>Last Seed — Upgraded Prototype (Art Pack)</h1>
+        <div class="muted">Programmatic pixel-art sprites (no external images) — multiple levels, enemies, audio hooks.</div>
       </div>
       <div style="margin-left:auto;text-align:right">
         <div class="muted">Drop as <code>index.html</code> → GitHub Pages</div>
@@ -80,36 +80,28 @@
 
         <div class="panel">
           <h3>Sound & Music</h3>
-          <p class="muted">This file includes WebAudio hooks. Replace with your audio files by calling <code>playMusic(url)</code> or attach FMOD integration in production.</p>
+          <p class="muted">The prototype exposes <code>playMusic(url)</code> and simple SFX hooks. Replace with your files or integrate FMOD later.</p>
         </div>
       </aside>
     </div>
 
     <footer class="center">
-      <small class="muted">Built for iteration. Tell me if you want FMOD, level-editor, or export to PWA.</small>
+      <small class="muted">Built for iteration. Want FMOD, level-editor, or PWA export? Ask and I'll add it.</small>
     </footer>
   </div>
 
 <script>
 /* ===================================================================
-   Fixed and stable Last Seed single-file prototype
-   - 3 levels
-   - enemies (rocks + pests), nutrients
-   - UI + audio hooks
+   Last Seed — Upgraded Prototype (Fixed Art)
+   - All sprites are generated programmatically (pixel-style) to avoid image load errors
+   - 3 levels, enemies (rocks + pests), nutrients, UI, WebAudio hooks
    ===================================================================*/
 
-// --- Embedded tiny PNG placeholders (standalone file) ---
-const SEED_IMG = new Image(); SEED_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAM1BMVEUAAAD///////////////////////////////////////////////////////////////8tW7x/AAAADHRSTlMAAQIDBAUGBwgJCgsMDWwE8QAAAEFJREFUGNNjYBgFo2AUjIKRkYGBgZGJiYmBgYHh4eFBQUFhYGBgaGJiYmBgYGJiYmBgYGAQwsDAwMjAwMAAACBaAVWmJsteQAAAABJRU5ErkJggg==';
-const ROCK_IMG = new Image(); ROCK_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAOVBMVEUAAAD///////////////////////////////////////////////////////+zs7P///8dP0uHAAAAD3RSTlMAAQIDBAUGBwgJCgsMDQ4P4V5KoAAAADxJREFUGNNjYIADJiYmBgYGJiYmBiYGAoKCgYGBjo6OggICAkJCQwMDIwMDAwAAAw5QAwYawslQAAAABJRU5ErkJggg==';
-const NUT_IMG = new Image(); NUT_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAQlBMVEUAAAD///////////////////////////////////////////////////////////////////////////////////////+Zd7y/AAAAEnRSTlMAAQIDBAUGBwgJCgsMDQ4PEBESFokyNwAAAEJJREFUGNNjYIACJiYmBgYGRiYmBiYGAoKCgYGBjo6OggICAkJCQwMDIwMDAwAAAw5QAwYawslQAAAABJRU5ErkJggg==';
-const SOIL_IMG = new Image(); SOIL_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAOVBMVEUAAAD/////////////////////////////////////////////////////////////////8uOkgAAAADHRSTlMAAQIDBAUGBwgJCgsMDQ4PESGCUwAAAD1JREFUGNNjYIADRkYGJiYmBgYGBkZGRiYmBhYWFiYmBgYGJiYmBgYGAQEBAQEAwMDAwMAAAGaQAzLY9QjAAAAABJRU5ErkJggg==';
-
-// --- Canvas setup ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
-// UI handles
+// UI
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const restartBtn = document.getElementById('restartBtn');
@@ -120,323 +112,135 @@ const livesEl = document.getElementById('lives');
 const progressEl = document.getElementById('progress');
 const levelLabel = document.getElementById('levelLabel');
 
-document.querySelectorAll('.levelBtn').forEach(b=>{
-  b.addEventListener('click', ()=> { changeLevel(parseInt(b.dataset.level)); });
-});
+// level buttons
+document.querySelectorAll('.levelBtn').forEach(b=> b.addEventListener('click', ()=> changeLevel(parseInt(b.dataset.level))));
 
-// Simple audio hooks (synth)
+// Audio hooks
 let audioEnabled = true; let ACTX = null;
 function ensureAudio(){ if(!ACTX) ACTX = new (window.AudioContext || window.webkitAudioContext)(); }
-function sfx(freq,d=0.08,vol=0.06){
-  if(!audioEnabled) return;
-  ensureAudio();
-  const o = ACTX.createOscillator();
-  const g = ACTX.createGain();
-  o.connect(g); g.connect(ACTX.destination);
-  o.type = 'sine';
-  o.frequency.value = freq;
-  g.gain.value = vol;
-  o.start();
-  g.gain.exponentialRampToValueAtTime(0.0001, ACTX.currentTime + d);
-  o.stop(ACTX.currentTime + d + 0.02);
+function sfx(freq,d=0.08,vol=0.06){ if(!audioEnabled) return; ensureAudio(); const o=ACTX.createOscillator(); const g=ACTX.createGain(); o.connect(g); g.connect(ACTX.destination); o.frequency.value=freq; g.gain.value=vol; o.start(); g.gain.exponentialRampToValueAtTime(0.0001, ACTX.currentTime + d); o.stop(ACTX.currentTime + d + 0.02);} 
+muteBtn.addEventListener('click', ()=>{ audioEnabled = !audioEnabled; muteBtn.textContent = audioEnabled ? 'Mute Audio' : 'Unmute'; if(audioEnabled) sfx(660,0.04,0.04); });
+
+// ----------------- Programmatic pixel-art sprite generator -----------------
+function makeSprite(drawFn, size=64, scale=3){
+  // drawFn(ctx, S) where S is size
+  const S = size;
+  const off = document.createElement('canvas'); off.width = S; off.height = S;
+  const octx = off.getContext('2d');
+  // disable image smoothing so it looks pixel-art when scaled
+  octx.imageSmoothingEnabled = false;
+  drawFn(octx, S);
+  // scale to larger image for crisp pixels
+  const out = new Image();
+  const scaled = document.createElement('canvas'); scaled.width = S*scale; scaled.height = S*scale;
+  const sctx = scaled.getContext('2d'); sctx.imageSmoothingEnabled = false;
+  sctx.drawImage(off, 0, 0, scaled.width, scaled.height);
+  out.src = scaled.toDataURL('image/png');
+  return out;
 }
-muteBtn.addEventListener('click', ()=> {
-  audioEnabled = !audioEnabled;
-  muteBtn.textContent = audioEnabled ? 'Mute Audio' : 'Unmute';
-  if(audioEnabled) sfx(880,0.04,0.04);
-});
+
+// small pixel palette helpers
+function px(ctx,x,y,color){ ctx.fillStyle=color; ctx.fillRect(x,y,1,1); }
+
+// Seed sprite (a warm brown seed with a tiny sprout)
+const SEED_SPR = makeSprite((c,S)=>{
+  // background transparent
+  // draw simple seed pixel shape
+  const cx = Math.floor(S/2), cy = Math.floor(S/2);
+  for(let y=-6;y<=6;y++){
+    const w = Math.floor((6 - Math.abs(y))/1.4);
+    for(let x=-w;x<=w;x++) px(c, cx+x, cy+y, '#C68A4A');
+  }
+  // highlight
+  for(let i=-2;i<=0;i++) px(c, cx-1+i, cy-3, '#FFE9C8');
+  // sprout
+  px(c,cx+6,cy-6,'#6BBF6B'); px(c,cx+6,cy-7,'#6BBF6B'); px(c,cx+7,cy-8,'#6BBF6B');
+}, 16, 4);
+
+// Rock sprite (gray jagged)
+const ROCK_SPR = makeSprite((c,S)=>{
+  const cx=S/2, cy=S/2;
+  // blob
+  for(let y=-5;y<=5;y++){
+    const w = Math.floor((5 - Math.abs(y))/1.1);
+    for(let x=-w;x<=w;x++) px(c, cx+x, cy+y, '#6C6C70');
+  }
+  // shading
+  px(c,cx-2,cy-1,'#8A8A8E'); px(c,cx+1,cy+2,'#4E4E50');
+}, 16, 4);
+
+// Nut sprite (green orb)
+const NUT_SPR = makeSprite((c,S)=>{
+  const cx=S/2, cy=S/2;
+  for(let y=-4;y<=4;y++){ const w = Math.floor(Math.sqrt(16 - y*y)); for(let x=-w;x<=w;x++) px(c,cx+x,cy+y,'#71D07A'); }
+  px(c,cx-1,cy-1,'#DFFFE6');
+}, 12, 5);
+
+// Pest sprite (tiny red bug)
+const PEST_SPR = makeSprite((c,S)=>{
+  const cx=S/2, cy=S/2;
+  // body
+  for(let y=-2;y<=2;y++){ for(let x=-3;x<=3;x++) if(Math.abs(x)+Math.abs(y) < 5) px(c,cx+x,cy+y,'#D9534F'); }
+  // eyes
+  px(c,cx-1,cy-1,'#FFF'); px(c,cx+1,cy-1,'#FFF');
+  px(c,cx-1,cy-1,'#000'); px(c,cx+1,cy-1,'#000');
+}, 12, 5);
+
+// Soil sprite (green patch)
+const SOIL_SPR = makeSprite((c,S)=>{
+  for(let y=0;y<S;y++) for(let x=0;x<S;x++) px(c,x,y,'#2E6B3A');
+  // simple lighter patches
+  for(let i=0;i<20;i++) px(c, Math.floor(Math.random()*S), Math.floor(Math.random()*S), '#3FAF55');
+}, 16, 5);
+
+// ---------------------------------------------------------------------------
 
 // Game state
 let state = {
-  running: false,
-  paused: false,
-  score: 0,
-  energy: 100,
-  lives: 3,
-  level: 1,
-  progress: 0,
-  seed: { x: 80, y: H/2, r: 18, spd: 180 },
-  enemies: [], // {type:'rock'|'pest', x,y,r,dx}
-  nutrients: [],
-  target: { x: W - 160, y: 140, w: 140, h: 260 },
-  time: 0
+  running:false, paused:false, score:0, energy:100, lives:3, level:1, progress:0,
+  seed:{x:80,y:H/2,r:18,spd:180}, enemies:[], nutrients:[], target:{x:W-160,y:140,w:140,h:260}, time:0
 };
 
-// Level config
-const LEVELS = {
-  1: { name:'Ruins', enemySpawn: 1.2, rockSpeed: 1.6, bg:'#0b1b22' },
-  2: { name:'Ashlands', enemySpawn: 0.95, rockSpeed: 2.2, bg:'#141316' },
-  3: { name:'Oasis', enemySpawn: 0.7, rockSpeed: 1.2, bg:'#04231a' }
-};
+const LEVELS = {1:{name:'Ruins',enemySpawn:1.2,rockSpeed:1.6,bg:'#0b1b22'},2:{name:'Ashlands',enemySpawn:0.95,rockSpeed:2.2,bg:'#141316'},3:{name:'Oasis',enemySpawn:0.7,rockSpeed:1.2,bg:'#04231a'}};
 
-// Spawners
-function spawnRock(){
-  const y = 60 + Math.random()*(H-120);
-  const dir = Math.random()>0.5? 1 : -1;
-  const speed = LEVELS[state.level].rockSpeed + Math.random()*0.8;
-  const x = dir>0 ? -60 : W + 60;
-  state.enemies.push({ type:'rock', x, y, r: 16 + Math.random()*18, dx: dir * speed });
-}
-function spawnPest(){
-  const y = 40 + Math.random()*(H-80);
-  const side = Math.random()>0.5 ? -1 : 1;
-  const x = side < 0 ? W + 40 : -40;
-  state.enemies.push({ type:'pest', x, y, r: 12, dx: -side*(2.4 + Math.random()*1.2) });
-}
-function spawnNut(){
-  state.nutrients.push({ x: 140 + Math.random()*(W-360), y: 40 + Math.random()*(H-80), r:9, collected:false });
-}
-function spawnInitialNutrients(){
-  state.nutrients = [];
-  for(let i=0;i<6;i++) spawnNut();
-}
+function changeLevel(n){ if(!(n in LEVELS)) return; state.level=n; levelLabel.textContent=n; resetLevel(); }
+function resetLevel(){ state.enemies=[]; state.nutrients=[]; state.time=0; state.progress=0; state.target={x:W-160,y:140,w:140,h:260}; state.seed.x=80; state.seed.y=H/2; spawnInitialNutrients(); updateUI(); }
+function spawnInitialNutrients(){ state.nutrients=[]; for(let i=0;i<6;i++) spawnNut(); }
 
-// Controls
-const keys = {};
-window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+function spawnRock(){ const y = 60 + Math.random()*(H-120); const dir = Math.random()>0.5?1:-1; const speed = LEVELS[state.level].rockSpeed + Math.random()*0.8; const x = dir>0? -60: W+60; state.enemies.push({type:'rock',x,y,r:16+Math.random()*18,dx:dir*speed}); }
+function spawnPest(){ const y = 40 + Math.random()*(H-80); const side = Math.random()>0.5?-1:1; const x = side<0? W+40:-40; state.enemies.push({type:'pest',x,y,r:12,dx:-side*(2.4 + Math.random()*1.2)}); }
+function spawnNut(){ state.nutrients.push({x:140+Math.random()*(W-360),y:40+Math.random()*(H-80),r:9,collected:false}); }
 
-// Buttons behavior
-startBtn.addEventListener('click', ()=>{
-  if(!state.running){
-    state.running = true; state.paused = false;
-    startBtn.disabled = true; pauseBtn.disabled = false;
-    pauseBtn.textContent = 'Pause';
-    if(audioEnabled) sfx(660,0.04,0.04);
-  }
-});
-pauseBtn.addEventListener('click', ()=>{
-  if(!state.running) return;
-  state.paused = !state.paused;
-  pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
-});
-restartBtn.addEventListener('click', ()=>{
-  state.running = false;
-  state.paused = false;
-  state.score = 0;
-  state.energy = 100;
-  state.lives = 3;
-  state.level = 1;
-  levelLabel.textContent = state.level;
-  startBtn.disabled = false;
-  pauseBtn.disabled = true;
-  resetLevel();
-});
+// input
+const keys = {}; window.addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true); window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 
-// Helper collisions
-function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2, y1-y2); }
-function rectCircle(rx,ry,rw,rh,cx,cy,cr){
-  const closestX = Math.max(rx, Math.min(cx, rx+rw));
-  const closestY = Math.max(ry, Math.min(cy, ry+rh));
-  return dist(closestX,closestY, cx,cy) < cr;
-}
+startBtn.addEventListener('click',()=>{ if(!state.running){ state.running=true; state.paused=false; startBtn.disabled=true; pauseBtn.disabled=false; pauseBtn.textContent='Pause'; if(audioEnabled) sfx(660,0.04,0.04); } });
+pauseBtn.addEventListener('click',()=>{ if(!state.running) return; state.paused = !state.paused; pauseBtn.textContent = state.paused ? 'Resume' : 'Pause'; });
+restartBtn.addEventListener('click',()=>{ state.running=false; state.paused=false; state.score=0; state.energy=100; state.lives=3; state.level=1; levelLabel.textContent=state.level; startBtn.disabled=false; pauseBtn.disabled=true; resetLevel(); });
 
-// Level & reset
-function changeLevel(n){
-  if(!(n in LEVELS)) return;
-  state.level = n;
-  levelLabel.textContent = n;
-  resetLevel();
-}
-function resetLevel(){
-  state.enemies = [];
-  state.nutrients = [];
-  state.time = 0;
-  state.progress = 0;
-  state.target = { x: W - 160, y: 140, w: 140, h: 260 };
-  state.seed.x = 80; state.seed.y = H/2;
-  spawnInitialNutrients();
-  updateUI();
-}
+// helpers
+function dist(a,b,c,d){ return Math.hypot(a-c,b-d); }
+function rectCircle(rx,ry,rw,rh,cx,cy,cr){ const closestX = Math.max(rx, Math.min(cx, rx+rw)); const closestY = Math.max(ry, Math.min(cy, ry+rh)); return dist(closestX,closestY,cx,cy) < cr; }
 
-// Game loop
-let last = performance.now();
-function loop(now){
-  const dt = Math.min((now - last) / 1000, 0.06);
-  last = now;
-  if(state.running && !state.paused) step(dt);
-  render();
-  requestAnimationFrame(loop);
-}
+// main loop
+let last = performance.now(); function loop(now){ const dt = Math.min((now-last)/1000,0.06); last=now; if(state.running && !state.paused) step(dt); render(); requestAnimationFrame(loop); }
 
-function step(dt){
-  state.time += dt;
+function step(dt){ state.time += dt; if(Math.random() < dt / LEVELS[state.level].enemySpawn){ if(Math.random()<0.6) spawnRock(); else spawnPest(); } if(Math.random() < 0.6*dt && state.nutrients.length < 8) spawnNut(); for(let e of state.enemies) e.x += e.dx * 60 * dt; state.enemies = state.enemies.filter(e=> e.x > -120 && e.x < W + 120); const s = state.seed; let vx=0, vy=0; if(keys['arrowup']||keys['w']) vy -=1; if(keys['arrowdown']||keys['s']) vy +=1; if(keys['arrowleft']||keys['a']) vx -=1; if(keys['arrowright']||keys['d']) vx +=1; const mag = Math.hypot(vx,vy) || 1; s.x += (vx/mag) * s.spd * dt; s.y += (vy/mag) * s.spd * dt; s.x = Math.max(20, Math.min(W-20, s.x)); s.y = Math.max(20, Math.min(H-20, s.y)); state.energy -= 6 * dt; if(state.energy <= 0) loseLife(); for(let n of state.nutrients){ if(!n.collected && dist(s.x,s.y,n.x,n.y) < s.r + n.r){ n.collected=true; state.score +=12; state.energy = Math.min(140, state.energy + 26); sfx(880,0.06,0.04); }} state.nutrients = state.nutrients.filter(n=>!n.collected); for(let e of state.enemies){ if(dist(s.x,s.y,e.x,e.y) < s.r + e.r - 4){ state.energy -= (e.type==='rock'?28:16); state.score = Math.max(0, state.score - (e.type==='rock'?8:3)); sfx(220,0.08,0.06); s.x -= Math.sign(e.dx || (s.x - e.x)) * 18; e.x = -9999; } } const T = state.target; const totalDist = Math.max(1, (W - 140)); const distToTarget = Math.max(0, T.x - s.x); state.progress = Math.round(((totalDist - distToTarget)/totalDist)*100); state.progress = Math.max(0, Math.min(100, state.progress)); if(rectCircle(T.x,T.y,T.w,T.h,s.x,s.y,s.r)){ state.score += 200; sfx(1000,0.12,0.06); if(state.level < 3){ changeLevel(state.level+1); } else { state.running=false; setTimeout(()=>{ alert('Congratulations — You restored life across the world! Score: '+state.score); startBtn.disabled=false; },50); } } updateUI(); }
 
-  // spawn enemies and nutrients
-  if(Math.random() < dt / LEVELS[state.level].enemySpawn){
-    if(Math.random() < 0.6) spawnRock();
-    else spawnPest();
-  }
-  if(Math.random() < 0.6*dt && state.nutrients.length < 8) spawnNut();
+function loseLife(){ state.lives -=1; state.energy = 80; sfx(200,0.12,0.06); if(state.lives <=0){ state.lives=0; state.running=false; startBtn.disabled=false; pauseBtn.disabled=true; setTimeout(()=>{ alert('Game Over — try again'); },50); } }
+function updateUI(){ scoreEl.textContent = Math.floor(state.score); energyEl.textContent = Math.floor(state.energy); livesEl.textContent = state.lives; progressEl.textContent = state.progress + '%'; }
 
-  // move enemies
-  for(let e of state.enemies) e.x += e.dx * 60 * dt;
-  state.enemies = state.enemies.filter(e => e.x > -120 && e.x < W + 120);
-
-  // move seed
-  const s = state.seed;
-  let vx=0, vy=0;
-  if(keys['arrowup']||keys['w']) vy -= 1;
-  if(keys['arrowdown']||keys['s']) vy += 1;
-  if(keys['arrowleft']||keys['a']) vx -= 1;
-  if(keys['arrowright']||keys['d']) vx += 1;
-  const mag = Math.hypot(vx,vy) || 1;
-  s.x += (vx/mag) * s.spd * dt;
-  s.y += (vy/mag) * s.spd * dt;
-  s.x = Math.max(20, Math.min(W-20, s.x));
-  s.y = Math.max(20, Math.min(H-20, s.y));
-
-  // energy drain
-  state.energy -= 6 * dt;
-  if(state.energy <= 0){ loseLife(); }
-
-  // nutrients collision
-  for(let n of state.nutrients){
-    if(!n.collected && dist(s.x,s.y,n.x,n.y) < s.r + n.r){
-      n.collected = true;
-      state.score += 12;
-      state.energy = Math.min(140, state.energy + 26);
-      sfx(880,0.06,0.04);
-    }
-  }
-  state.nutrients = state.nutrients.filter(n => !n.collected);
-
-  // enemies collision
-  for(let e of state.enemies){
-    if(dist(s.x,s.y,e.x,e.y) < s.r + e.r - 4){
-      state.energy -= (e.type === 'rock' ? 28 : 16);
-      state.score = Math.max(0, state.score - (e.type === 'rock' ? 8 : 3));
-      sfx(220,0.08,0.06);
-      // knockback
-      s.x -= Math.sign(e.dx || (s.x - e.x)) * 18;
-      e.x = -9999; // remove
-    }
-  }
-
-  // progress
-  const T = state.target;
-  const totalDist = Math.max(1, (W - 140));
-  const distToTarget = Math.max(0, T.x - s.x);
-  state.progress = Math.round(((totalDist - distToTarget)/totalDist) * 100);
-  state.progress = Math.max(0, Math.min(100, state.progress));
-
-  // reach target
-  if(rectCircle(T.x, T.y, T.w, T.h, s.x, s.y, s.r)){
-    // level complete
-    state.score += 200;
-    sfx(1000,0.12,0.06);
-    if(state.level < 3){
-      changeLevel(state.level + 1);
-      // brief pause between levels
-      state.running = true;
-    } else {
-      state.running = false;
-      startBtn.disabled = false;
-      pauseBtn.disabled = true;
-      setTimeout(()=>{ alert('Congratulations — You restored life across the world! Score: ' + state.score); }, 50);
-    }
-  }
-
-  updateUI();
-}
-
-function loseLife(){
-  state.lives -= 1;
-  state.energy = 80;
-  sfx(200,0.12,0.06);
-  if(state.lives <= 0){
-    state.lives = 0;
-    state.running = false;
-    startBtn.disabled = false;
-    pauseBtn.disabled = true;
-    setTimeout(()=>{ alert('Game Over — try again'); }, 50);
-  }
-}
-
-function updateUI(){
-  scoreEl.textContent = Math.floor(state.score);
-  energyEl.textContent = Math.floor(state.energy);
-  livesEl.textContent = state.lives;
-  progressEl.textContent = state.progress + '%';
-}
-
-// Render
-function render(){
-  // background
-  ctx.fillStyle = (LEVELS[state.level] && LEVELS[state.level].bg) ? LEVELS[state.level].bg : '#07121a';
-  ctx.fillRect(0,0,W,H);
-
-  // ground band
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.fillRect(0,H*0.68,W,H*0.32);
-
-  // target soil
-  const T = state.target;
-  ctx.drawImage(SOIL_IMG, T.x, T.y, T.w, T.h);
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.font = '14px sans-serif';
-  ctx.fillText((LEVELS[state.level] ? LEVELS[state.level].name : '') + ' — Fertile Soil', T.x + 12, T.y + 22);
-
-  // nutrients
-  for(let n of state.nutrients){
-    ctx.drawImage(NUT_IMG, n.x - n.r, n.y - n.r, n.r*2, n.r*2);
-  }
-
-  // enemies
-  for(let e of state.enemies){
-    if(e.type === 'rock'){
-      ctx.drawImage(ROCK_IMG, e.x - e.r, e.y - e.r, e.r*2, e.r*2);
-    } else if(e.type === 'pest'){
-      const t = (state.time * 8 + e.x) % 6;
-      const scale = 1 + Math.sin(t) * 0.08;
-      ctx.save();
-      ctx.translate(e.x, e.y);
-      ctx.scale(scale, scale);
-      ctx.drawImage(ROCK_IMG, -e.r, -e.r, e.r*2, e.r*2);
-      ctx.restore();
-    }
-  }
-
-  // seed - small bob if energy high
-  const bob = Math.sin(state.time * 6) * (state.energy > 90 ? 3 : 1);
-  ctx.drawImage(SEED_IMG, state.seed.x - state.seed.r, state.seed.y - state.seed.r + bob, state.seed.r*2, state.seed.r*2);
-
-  // HUD overlay
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
-  ctx.fillRect(14,14,260,92);
-  ctx.fillStyle = 'white';
-  ctx.font = '14px sans-serif';
-  ctx.fillText('Score: ' + Math.floor(state.score), 22, 36);
-  ctx.fillText('Energy: ' + Math.floor(state.energy), 22, 58);
-  ctx.fillText('Lives: ' + state.lives, 22, 80);
-
-  // center "start" overlay when not running
-  if(!state.running){
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    roundedRect(ctx, W/2 - 260, H/2 - 46, 520, 92, 10);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Click Start to begin the journey of the Last Seed', W/2, H/2 - 6);
-    ctx.font = '13px sans-serif';
-    ctx.fillText('Use arrow keys or WASD — avoid hazards and reach the soil.', W/2, H/2 + 22);
-    ctx.textAlign = 'left';
-  }
-}
+// render
+function render(){ ctx.fillStyle = LEVELS[state.level].bg || '#07121a'; ctx.fillRect(0,0,W,H); ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(0,H*0.68,W,H*0.32); const T = state.target; // draw soil using sprite safely
+  if(SOIL_SPR && SOIL_SPR.complete) ctx.drawImage(SOIL_SPR, T.x, T.y, T.w, T.h); ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.font='14px sans-serif'; ctx.fillText(LEVELS[state.level].name + ' — Fertile Soil', T.x+12, T.y+22); for(let n of state.nutrients){ if(NUT_SPR && NUT_SPR.complete) ctx.drawImage(NUT_SPR, n.x-n.r, n.y-n.r, n.r*2, n.r*2); } for(let e of state.enemies){ if(e.type==='rock'){ if(ROCK_SPR && ROCK_SPR.complete) ctx.drawImage(ROCK_SPR, e.x-e.r, e.y-e.r, e.r*2, e.r*2); } else if(e.type==='pest'){ if(PEST_SPR && PEST_SPR.complete){ const t = (state.time*8 + e.x)%6; const scale = 1 + Math.sin(t)*0.08; ctx.save(); ctx.translate(e.x,e.y); ctx.scale(scale,scale); ctx.drawImage(PEST_SPR, -e.r, -e.r, e.r*2, e.r*2); ctx.restore(); } } } const bob = Math.sin(state.time*6) * (state.energy>90?3:1); if(SEED_SPR && SEED_SPR.complete) ctx.drawImage(SEED_SPR, state.seed.x - state.seed.r, state.seed.y - state.seed.r + bob, state.seed.r*2, state.seed.r*2); ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(14,14,260,92); ctx.fillStyle='white'; ctx.font='14px sans-serif'; ctx.fillText('Score: '+Math.floor(state.score),22,36); ctx.fillText('Energy: '+Math.floor(state.energy),22,58); ctx.fillText('Lives: '+state.lives,22,80); if(!state.running){ ctx.fillStyle='rgba(0,0,0,0.45)'; roundedRect(ctx,W/2-260,H/2-46,520,92,10); ctx.fill(); ctx.fillStyle='white'; ctx.font='20px sans-serif'; ctx.textAlign='center'; ctx.fillText('Click Start to begin the journey of the Last Seed', W/2, H/2-6); ctx.font='13px sans-serif'; ctx.fillText('Use arrow keys or WASD — avoid hazards and reach the soil.', W/2, H/2+22); ctx.textAlign='left'; } }
 
 function roundedRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
-// initialize
-resetLevel();
-last = performance.now();
-requestAnimationFrame(loop);
+// init
+resetLevel(); last = performance.now(); requestAnimationFrame(loop);
 
-// expose hooks for external audio / FMOD integration
-window.playMusic = function(url){
-  console.log('playMusic stub: ', url);
-  sfx(440,0.12,0.04);
-};
+// expose hooks
+window.playMusic = function(url){ console.log('playMusic stub: ',url); sfx(440,0.12,0.04); };
 window.addNutrientAt = function(x,y){ state.nutrients.push({x,y,r:10,collected:false}); };
 
 </script>
